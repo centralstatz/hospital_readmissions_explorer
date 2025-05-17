@@ -30,6 +30,29 @@ ui <-
         
         h2("Controls", style = "text-align:center"),
         
+        # Hospital information
+        accordion(
+          open = FALSE,
+          accordion_panel(
+            title = "Hospital Information",
+            icon = icon("hospital"),
+            
+            # Simultaneously filtering on hospital columns
+            select_group_ui(
+              id = "hospitals",
+              params = 
+                list(
+                  list(inputId = "FacilityName", label = "Hospital"),
+                  list(inputId = "City", label = "City"),
+                  list(inputId = "County", label = "County"),
+                  list(inputId = "Zip", label = "Zip")
+                ),
+              inline = FALSE
+            )
+            
+          )
+        ),
+        
         # HRRP Measures
         accordion(
           open = FALSE,
@@ -74,48 +97,6 @@ ui <-
               max = 22,
               value = c(2, 22),
               step = 1
-            )
-            
-          )
-        ),
-        
-        # Hospital information
-        accordion(
-          open = FALSE,
-          accordion_panel(
-            title = "Hospital Information",
-            icon = icon("hospital"),
-            
-            # Hospital name
-            selectInput(
-              inputId = "hospital",
-              label = "Hospital",
-              choices = sort(unique(hospitals$FacilityName)),
-              multiple = TRUE
-            ),
-            
-            # City
-            selectInput(
-              inputId = "city",
-              label = "City",
-              choices = sort(unique(hospitals$City)),
-              multiple = TRUE
-            ),
-            
-            # County
-            selectInput(
-              inputId = "county",
-              label = "County",
-              choices = sort(unique(hospitals$County)),
-              multiple = TRUE
-            ),
-            
-            # Zip code
-            selectInput(
-              inputId = "zip",
-              label = "Zip Code",
-              choices = sort(unique(hospitals$Zip)),
-              multiple = TRUE
             )
             
           )

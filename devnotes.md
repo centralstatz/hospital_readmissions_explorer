@@ -83,8 +83,13 @@ These show
 
 The inputs should update in real time with the selections made in other inputs. For example, if I selected a given zip code, then my only hospital choices should be those in that zip code.
 
+I used the [`datamods`](https://dreamrs.github.io/datamods/reference/select-group.html) package to facilitate this. You have to supply the `id` values for the columns as the column names themselves, then it dynmaically updates the selections simulataneously. 
+
+The only problem is that with the chat functionality, I don't see how this is going to work given the way in which the SQL engine filters the data. One approach may be to initialize the chat with `querychat_init` in the server itself based on the dynamically filtered hospital set, then you only ask questions about the metrics.
+
 # 8. Chat functionality
 
 ## Dynamically update reactive dataset
+
 
 ## Dynamically updating inputs

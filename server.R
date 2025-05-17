@@ -6,32 +6,21 @@
 server <- 
   function(input, output, session) {
     
-    # Filter to current hospitals
+    # Filter to the current hospitals (based on group of location filters)
+    current_hospitals_temp <- 
+      
+      # Filters the dataset at once
+      select_group_server(
+        id = "hospitals",
+        data = reactive(hospitals),
+        vars = reactive(c("FacilityName", "City", "County", "Zip"))
+      )
+    
+    # Filter to current hospitals (with metric criteria)
     current_hospitals <- 
       reactive({
         
-        # Initialize with full set
-        temp_hospitals <- hospitals
-        
-        ## Apply filters if selections are made
-        
-        # Hospital name
-        if(!is.null(input$hospital))
-          temp_hospitals <- temp_hospitals |> filter(FacilityName %in% input$hospital)
-        
-        # City
-        if(!is.null(input$city))
-          temp_hospitals <- temp_hospitals |> filter(City %in% input$city)
-        
-        # County
-        if(!is.null(input$county))
-          temp_hospitals <- temp_hospitals |> filter(County %in% input$county)
-        
-        # Zip code
-        if(!is.null(input$zip))
-          temp_hospitals <- temp_hospitals |> filter(Zip %in% input$zip)
-        print(input$excess)
-        temp_hospitals |>
+        current_hospitals_temp() |>
           
           # Join to get excess ratio
           inner_join(
@@ -40,6 +29,7 @@ server <-
               
               # Filter to the specified metric ranges
               filter(
+                DiagnosisCategory == input$diagnosis,
                 Excess >= min(input$excess), Excess <= max(input$excess),
                 Predicted >= min(input$predicted), Predicted <= max(input$predicted),
                 Expected >= min(input$expected), Expected <= max(input$expected)
@@ -51,40 +41,40 @@ server <-
     
     # Display the map contents
     output$hospital_map <- renderLeaflet({base_map})
-      observe({
-        
-        leafletProxy("hospital_map") |>
-          clearMarkers() |>
-          
-          # Add points to map
-          addCircleMarkers(
-            data = 
-              current_hospitals() |>
-              
-              # Filter to the focus diagnosis group
-              filter(DiagnosisCategory == input$diagnosis), 
-            
-            lng = ~lon,
-            lat = ~lat,
-            label = ~paste0(FacilityName, " (click for info)"),
-            popup = 
-              ~paste0(
-                "Hospital: ", FacilityName, 
-                "<br>Address: ", Address,
-                "<br>City: ", City,
-                "<br>County: ", County,
-                "<br>Zip Code: ", Zip,
-                "<br>Excess Readmission Ratio: ", Excess,
-                "<br>Predicted Readmission Rate: ", round(Predicted, 2), "%",
-                "<br>Expected Readmission Rate: ", round(Expected, 2), "%"
-              ),
-            color = ~pal(-1*Excess),
-            radius = ~scale(Excess)[,1] + 5,
-            fillOpacity = 1
-          )
-        
-      })
+    observe({
       
+      leafletProxy("hospital_map") |>
+        clearMarkers() |>
+        
+        # Add points to map
+        addCircleMarkers(
+          data = 
+            current_hospitals() |>
+            
+            # Filter to the focus diagnosis group
+            filter(DiagnosisCategory == input$diagnosis), 
+          
+          lng = ~lon,
+          lat = ~lat,
+          label = ~paste0(FacilityName, " (click for info)"),
+          popup = 
+            ~paste0(
+              "Hospital: ", FacilityName, 
+              "<br>Address: ", Address,
+              "<br>City: ", City,
+              "<br>County: ", County,
+              "<br>Zip Code: ", Zip,
+              "<br>Excess Readmission Ratio: ", Excess,
+              "<br>Predicted Readmission Rate: ", round(Predicted, 2), "%",
+              "<br>Expected Readmission Rate: ", round(Expected, 2), "%"
+            ),
+          color = ~pal(-1*Excess),
+          radius = ~scale(Excess)[,1] + 5,
+          fillOpacity = 1
+        )
+      
+    })
+    
     # Print displayed group
     output$what_diagnosis <- renderText({paste0("Focus Diagnosis Group: ", input$diagnosis)})
     
@@ -92,8 +82,11 @@ server <-
     output$scatter_plot <-
       renderHighchart({
         
-        current_hospitals() |>
-
+        hrrp |>
+          
+          # Filter to hospitals in current set
+          filter(FacilityID %in% current_hospitals()$FacilityID) |>
+          
           # Make a highchart scatterplot
           hchart(
             "scatter",
@@ -110,7 +103,10 @@ server <-
     output$deviation_plot <-
       renderHighchart({
         
-        current_hospitals() |>
+        hrrp |>
+          
+          # Filter to hospitals in current set
+          filter(FacilityID %in% current_hospitals()$FacilityID) |>
           
           # Make a highchart scatterplot
           hchart(
@@ -120,7 +116,19 @@ server <-
               y = Excess,
               group = DiagnosisCategory
             )
-          ) 
+          ) |>
+          
+          # Reference line at y = 1
+          hc_yAxis(
+            plotLines = 
+              list(
+                list(
+                  color = "#252525",
+                  width = 2,
+                  value = 1
+                )
+              )
+          )
         
       })
     

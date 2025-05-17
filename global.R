@@ -7,6 +7,7 @@
 library(shiny)
 library(tidyverse)
 library(bslib)
+library(datamods)
 library(highcharter)
 library(leaflet)
 library(querychat)
