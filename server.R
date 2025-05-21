@@ -12,30 +12,39 @@ server <-
       # Filters the dataset at once
       select_group_server(
         id = "hospitals",
-        data = reactive(hospitals),
+        data = reactive(master_dat),
         vars = reactive(c("FacilityName", "City", "County", "Zip"))
       )
+    
+    # Make the chat server
+    querychat <- querychat_server("chat", querychat_config)
     
     # Filter to current hospitals (with metric criteria)
     current_hospitals <- 
       reactive({
         
-        current_hospitals_temp() |>
+        # Use dataset based on app mode
+        if(input$chat_mode) {
           
-          # Join to get excess ratio
-          inner_join(
-            y =
-              hrrp |>
-              
-              # Filter to the specified metric ranges
-              filter(
-                DiagnosisCategory == input$diagnosis,
-                Excess >= min(input$excess), Excess <= max(input$excess),
-                Predicted >= min(input$predicted), Predicted <= max(input$predicted),
-                Expected >= min(input$expected), Expected <= max(input$expected)
-              ),
-            by = "FacilityID"
-          )
+          # Get the dataset being returned by the chat
+          temp_hospitals <- querychat$df()
+          
+        } else {
+          
+          # Use the dataset filtered manually
+          temp_hospitals <- 
+            current_hospitals_temp() |>
+            
+            # Filter to the specified metric ranges
+            filter(
+              DiagnosisCategory == input$diagnosis,
+              Excess >= min(input$excess), Excess <= max(input$excess),
+              Predicted >= min(input$predicted), Predicted <= max(input$predicted),
+              Expected >= min(input$expected), Expected <= max(input$expected)
+            )
+        }
+        
+        temp_hospitals
         
       })
     
@@ -46,14 +55,15 @@ server <-
       leafletProxy("hospital_map") |>
         clearMarkers() |>
         
+        setView(
+          lng = mean(unique(current_hospitals()$lon)),
+          lat = mean(unique(current_hospitals()$lat)),
+          zoom = 7
+        ) |>
+        
         # Add points to map
         addCircleMarkers(
-          data = 
-            current_hospitals() |>
-            
-            # Filter to the focus diagnosis group
-            filter(DiagnosisCategory == input$diagnosis), 
-          
+          data = current_hospitals(),
           lng = ~lon,
           lat = ~lat,
           label = ~paste0(FacilityName, " (click for info)"),
@@ -64,6 +74,7 @@ server <-
               "<br>City: ", City,
               "<br>County: ", County,
               "<br>Zip Code: ", Zip,
+              "<br>Diagnosis Group: ", DiagnosisCategory,
               "<br>Excess Readmission Ratio: ", Excess,
               "<br>Predicted Readmission Rate: ", round(Predicted, 2), "%",
               "<br>Expected Readmission Rate: ", round(Expected, 2), "%"
@@ -76,7 +87,7 @@ server <-
     })
     
     # Print displayed group
-    output$what_diagnosis <- renderText({paste0("Focus Diagnosis Group: ", input$diagnosis)})
+    output$what_diagnosis <- renderText({paste0("Focus Diagnosis Group: ", paste(sort(unique(current_hospitals()$DiagnosisCategory)), collapse = ", "))})
     
     # Scatterplot: predicted vs. expected
     output$scatter_plot <-
@@ -150,17 +161,19 @@ server <-
           
           # Filter to hospitals in excess
           filter(
-            DiagnosisCategory == input$diagnosis,
             Excess > 1
           ) |>
           
           # Row count
-          nrow()
+          with(data = _, n_distinct(FacilityID))
         
         temp_count <- paste0(temp_count, " (", round(100 * temp_count / n_distinct(current_hospitals()$FacilityID)), "%)")
         
-        HTML(paste0(temp_count, "<span style='font-size:14px'>for ", input$diagnosis))
+        HTML(paste0(temp_count, "<span style='font-size:14px'>for ", paste(sort(unique(current_hospitals()$DiagnosisCategory)), collapse = ", ")))
         
       })
+    
+    # Show data
+    output$hospital_table <- DT::renderDataTable({current_hospitals()})
     
   }

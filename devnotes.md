@@ -87,9 +87,44 @@ I used the [`datamods`](https://dreamrs.github.io/datamods/reference/select-grou
 
 The only problem is that with the chat functionality, I don't see how this is going to work given the way in which the SQL engine filters the data. One approach may be to initialize the chat with `querychat_init` in the server itself based on the dynamically filtered hospital set, then you only ask questions about the metrics.
 
+We'll just move forward with the assumption that hospitals are chosen manually, and then the metric selectors are what get updated.
+
+## Metric selectors
+
+The metric inputs should update with the ranges of the current selections.
+
 # 8. Chat functionality
+
+There is a "chat mode" feature now in the main sidebar. You can toggle back and forth between manual and chat mode.
 
 ## Dynamically update reactive dataset
 
+After the hospitals are selected manually with the dynamic selector inputs, the chat is going to allow querying of that subset _before_ it filters to specific diagnosis, so you can ask questions like:
 
-## Dynamically updating inputs
+_"What hospitals in Wausau had excess readmissions for heart failure?"_
+
+_"What disease category had the highest average excess readmission ratio?"_
+
+So we'll assume the user filtered to a group of hospitals of interest, then asks questions of those
+
+## Display output
+
+We'll just have a separate tab where the results of query will be shown.
+
+# 5/21/2025
+
+* Made a single master dataset that combines hospitals with program metrics (so one row per hospital/disease group combo). This will be entered into the querychat configuration.
+
+## Useful prompts:
+
+* "Show me the hospitals with top 5 largest excess readmission ratio across all diagnosis groups"
+* "Show me hospitals that had excess readmissions > 1 for heart failure"
+* "Show me hospitals in Marathon county that who had more predicted readmissions than expected"
+* "Which hospital had the largest discrepancy in predicted vs. expected readmission rate for CABG?" (Chat response)
+* "What is the average predicted readmission rate for each diagnosis group?" (Chat response)
+* "Show me the top 10 best hospitals for knee or hip"
+
+## Data description
+
+* Made a file called `data_description.md` which I can describe my dataset, then import it into the `querychat_init`
+* Make system prompt file to describe the dataset, capital words, how it is structured (e.g., if we have everything in one dataset, it must understand how to query it).

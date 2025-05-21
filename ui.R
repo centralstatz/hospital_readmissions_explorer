@@ -27,86 +27,101 @@ ui <-
     sidebar = 
       sidebar(
         open = TRUE,
+        width = 350,
         
         h2("Controls", style = "text-align:center"),
         
-        # Hospital information
-        accordion(
-          open = FALSE,
-          accordion_panel(
-            title = "Hospital Information",
-            icon = icon("hospital"),
-            
-            # Simultaneously filtering on hospital columns
-            select_group_ui(
-              id = "hospitals",
-              params = 
-                list(
-                  list(inputId = "FacilityName", label = "Hospital"),
-                  list(inputId = "City", label = "City"),
-                  list(inputId = "County", label = "County"),
-                  list(inputId = "Zip", label = "Zip")
-                ),
-              inline = FALSE
-            )
-            
-          )
+        # Toggle between manual and chat mode
+        input_switch(
+          id = "chat_mode",
+          label = "Chat Mode"
         ),
         
-        # HRRP Measures
-        accordion(
-          open = FALSE,
-          accordion_panel(
-            title = "HRRP Measures",
-            icon = icon("scale-unbalanced"),
-            
-            # Diagnosis category
-            selectInput(
-              inputId = "diagnosis",
-              label = "Focus Diagnosis",
-              choices = sort(unique(hrrp$DiagnosisCategory))
-            ),
-            
-            ## Sliders for metrics
-            
-            # Excess
-            sliderInput(
-              inputId = "excess",
-              label = "Excess Readmission Ratio",
-              min = 0.65,
-              max = 1.25,
-              value = c(0.66, 1.22),
-              step = 0.05
-            ),
-            
-            # Predicted
-            sliderInput(
-              inputId = "predicted",
-              label = "Predicted Readmission Rate",
-              min = 2,
-              max = 24,
-              value = c(2, 24),
-              step = 1
-            ),
-            
-            # Expected
-            sliderInput(
-              inputId = "expected",
-              label = "Expected Readmission Rate",
-              min = 2,
-              max = 22,
-              value = c(2, 22),
-              step = 1
+        # Manual filtering
+        conditionalPanel(
+          condition = "!input.chat_mode",
+          
+          # Hospital information
+          accordion(
+            open = FALSE,
+            accordion_panel(
+              title = "Hospital Information",
+              icon = icon("hospital"),
+              
+              # Simultaneously filtering on hospital columns
+              select_group_ui(
+                id = "hospitals",
+                params = 
+                  list(
+                    list(inputId = "FacilityName", label = "Hospital"),
+                    list(inputId = "City", label = "City"),
+                    list(inputId = "County", label = "County"),
+                    list(inputId = "Zip", label = "Zip")
+                  ),
+                inline = FALSE
+              )
+              
             )
-            
+          ),
+          
+          # HRRP Measures
+          accordion(
+            open = FALSE,
+            accordion_panel(
+              title = "HRRP Measures",
+              icon = icon("scale-unbalanced"),
+              
+              # Diagnosis category
+              selectInput(
+                inputId = "diagnosis",
+                label = "Focus Diagnosis",
+                choices = sort(unique(hrrp$DiagnosisCategory))
+              ),
+              
+              ## Sliders for metrics
+              
+              # Excess
+              sliderInput(
+                inputId = "excess",
+                label = "Excess Readmission Ratio",
+                min = 0.65,
+                max = 1.25,
+                value = c(0.66, 1.22),
+                step = 0.05
+              ),
+              
+              # Predicted
+              sliderInput(
+                inputId = "predicted",
+                label = "Predicted Readmission Rate",
+                min = 2,
+                max = 24,
+                value = c(2, 24),
+                step = 1
+              ),
+              
+              # Expected
+              sliderInput(
+                inputId = "expected",
+                label = "Expected Readmission Rate",
+                min = 2,
+                max = 22,
+                value = c(2, 22),
+                step = 1
+              )
+              
+            )
           )
+          
         ),
         
-        # Button to refresh application
-        actionButton(
-          inputId = "refresh",
-          label = "Update",
-          icon = icon("arrows-rotate")
+        # Chat input
+        conditionalPanel(
+          condition = "input.chat_mode",
+          
+          # The chat user interface
+          querychat_ui(id = "chat")
+          
         ),
         
         # Dataset sources
@@ -188,11 +203,13 @@ ui <-
         card(
           card_header(
             div(
-              icon("comment"),
-              "Data Chat"
+              icon("table"),
+              "Data View"
             )
           ),
-          querychat_ui(id = "chat"),
+          
+          # Table to showing current selection
+          DT::dataTableOutput(outputId = "hospital_table"),
           full_screen = TRUE
         )
         

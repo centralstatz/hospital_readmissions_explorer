@@ -155,6 +155,16 @@ hrrp <-
     values_from = Value
   )
 
+# Make single table with all data
+master_dat <- 
+  hospitals |>
+  
+  # Join to get program results
+  inner_join(
+    y = hrrp,
+    by = "FacilityID"
+  )
+
 ### Build base map
 
 # WI state outlines
@@ -211,12 +221,12 @@ pal <-
     domain = -1*sort(unique(hrrp$Excess))
   )
 
-
-### TESTING querychat
-
-#querychat_config <- 
-#  querychat_init(
-#    df = map_data,
-#    create_chat_func = purrr::partial(ellmer::chat_gemini),
-#    greeting = "Hello sir"
-#  )
+# Configure the chat object
+querychat_config <- 
+  querychat_init(
+    df = master_dat,
+    tbl_name = "HospitalHRRP",
+    create_chat_func = purrr::partial(ellmer::chat_gemini),
+    greeting = "Ask me a question about the HRRP in Wisconsin",
+    data_description = readLines("data_description.md")
+  )
